@@ -2,6 +2,7 @@ import { PlayerProvider } from "../context/PlayerContext";
 import Player from "../components/player/Player";
 import Sidebar from "../components/sidebar/Sidebar";
 import Home from "../pages/Home";
+import QueuePanel from "../components/queue/QueuePanel";
 
 export default function MainLayout() {
   return (
@@ -18,8 +19,14 @@ export default function MainLayout() {
           <Home />
         </main>
 
+        {/* Queue Panel – Desktop only */}
+        <aside className="hidden lg:block w-72 p-4 border-l border-gray-800">
+          <QueuePanel />
+        </aside>
+
         {/* Bottom Player */}
         <Player />
+
       </div>
     </PlayerProvider>
   );

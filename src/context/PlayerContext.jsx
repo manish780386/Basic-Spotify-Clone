@@ -1,9 +1,11 @@
 import { createContext, useContext, useState } from "react";
+
 import songs from "../data/songs";
 
 const PlayerContext = createContext();
 
 export function PlayerProvider({ children }) {
+  const [playlists, setPlaylists] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -11,6 +13,26 @@ export function PlayerProvider({ children }) {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState("none"); // none | all | one
 
+  const [likedSongs, setLikedSongs] = useState(
+    JSON.parse(localStorage.getItem("likedSongs")) || []
+  );
+
+  const createPlaylist = (name) => {
+  setPlaylists((prev) => [
+    ...prev,
+    { id: Date.now(), name, songs: [] },
+  ]);
+};
+
+const addToPlaylist = (playlistId, song) => {
+  setPlaylists((prev) =>
+    prev.map((pl) =>
+      pl.id === playlistId && !pl.songs.some(s => s.id === song.id)
+        ? { ...pl, songs: [...pl.songs, song] }
+        : pl
+    )
+  );
+};
   const playSong = (song) => {
     const index = songs.findIndex((s) => s.id === song.id);
     setCurrentIndex(index);
@@ -29,10 +51,7 @@ export function PlayerProvider({ children }) {
   };
 
   const nextSong = () => {
-    if (repeat === "one") {
-      setIsPlaying(true);
-      return;
-    }
+    if (repeat === "one") return;
 
     let nextIndex;
 
@@ -60,6 +79,20 @@ export function PlayerProvider({ children }) {
     setIsPlaying(true);
   };
 
+  const toggleLike = (song) => {
+    const exists = likedSongs.find((s) => s.id === song.id);
+
+    let updated;
+    if (exists) {
+      updated = likedSongs.filter((s) => s.id !== song.id);
+    } else {
+      updated = [...likedSongs, song];
+    }
+
+    setLikedSongs(updated);
+    localStorage.setItem("likedSongs", JSON.stringify(updated));
+  };
+
   return (
     <PlayerContext.Provider
       value={{
@@ -73,6 +106,11 @@ export function PlayerProvider({ children }) {
         repeat,
         toggleShuffle,
         toggleRepeat,
+        likedSongs,
+        toggleLike,
+        addToPlaylist,
+        createPlaylist,
+        playlists,
       }}
     >
       {children}

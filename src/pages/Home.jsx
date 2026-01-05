@@ -1,7 +1,12 @@
 import songs from "../data/songs";
 import SongCard from "../components/song/SongCard";
+import CreatePlaylist from "../components/playlist/CreatePlaylist";
+import PlaylistList from "../components/playlist/PlaylistList";
+import PlaylistSongs from "../components/playlist/PlaylistSongs";
+import { useState } from "react";
 
 export default function Home() {
+  const [activePlaylist, setActivePlaylist] = useState(null);
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto">
@@ -15,6 +20,12 @@ export default function Home() {
           ))}
         </div>
       </div>
+      return 
+    <>
+      <CreatePlaylist />
+      <PlaylistList onSelect={setActivePlaylist} />
+      <PlaylistSongs playlist={activePlaylist} />
+    </>
     </div>
   );
 }

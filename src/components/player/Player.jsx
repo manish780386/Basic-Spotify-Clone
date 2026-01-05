@@ -8,13 +8,11 @@ import DesktopPlayer from "./DesktopPlayer";
 import MobilePlayer from "./MobilePlayer";
 
 export default function Player() {
-  // Detect screen size
-  const isMobile = useScreen();
-
-  // Setup keyboard controls
   useKeyboardControls();
 
-  // Player context
+  const isMobile = useScreen();
+
+  // 🎵 Player context
   const {
     currentSong,
     isPlaying,
@@ -27,24 +25,26 @@ export default function Player() {
     toggleRepeat,
   } = usePlayer();
 
-  // Audio hook
+  // 🔊 Audio hook
   const { currentTime, duration, seek, audioRef } = useAudio();
 
-  // Format time function
+  // ❌ agar koi song nahi hai → kuch render mat karo
+  if (!currentSong) return null;
+
+  // 📱 Mobile player
+  if (isMobile) {
+    return <MobilePlayer />;
+  }
+
+  // ⏱ time formatter
   const formatTime = (time) => {
-    if (!time && time !== 0) return "0:00";
+    if (time === undefined || time === null) return "0:00";
     const min = Math.floor(time / 60);
-    const sec = Math.floor(time % 60)
-      .toString()
-      .padStart(2, "0");
+    const sec = Math.floor(time % 60).toString().padStart(2, "0");
     return `${min}:${sec}`;
   };
 
-  if (!currentSong) return null;
-
-  // Return mobile or desktop player
-  if (isMobile) return <MobilePlayer />;
-
+  // 🖥 Desktop player
   return (
     <motion.div
       initial={{ y: 80, opacity: 0 }}
@@ -62,7 +62,7 @@ export default function Player() {
         <img
           src={currentSong.cover}
           alt={currentSong.title}
-          className="w-14 h-14 rounded-lg object-cover flex-shrink-0"
+          className="w-14 h-14 rounded-lg object-cover"
         />
         <div className="truncate">
           <p className="text-sm font-semibold truncate">{currentSong.title}</p>
@@ -93,36 +93,34 @@ export default function Player() {
 
         {/* Controls */}
         <div className="flex gap-6 mb-2">
-          <motion.button whileTap={{ scale: 0.8 }} onClick={prevSong} className="text-2xl">
-            ⏮
-          </motion.button>
+          <motion.button onClick={prevSong} className="text-2xl">⏮</motion.button>
 
           <motion.button
-            whileTap={{ scale: 0.85 }}
-            animate={{ scale: isPlaying ? 1.1 : 1 }}
             onClick={togglePlay}
-            className="bg-white text-black w-12 h-12 rounded-full font-bold flex items-center justify-center shadow-lg"
+            className="bg-white text-black w-12 h-12 rounded-full font-bold"
           >
             {isPlaying ? "❚❚" : "▶"}
           </motion.button>
 
-          <motion.button whileTap={{ scale: 0.8 }} onClick={nextSong} className="text-2xl">
-            ⏭
-          </motion.button>
+          <motion.button onClick={nextSong} className="text-2xl">⏭</motion.button>
         </div>
 
         {/* Progress */}
         <div className="flex items-center gap-2 w-full">
-          <span className="text-xs w-8 text-right">{formatTime(currentTime)}</span>
+          <span className="text-xs w-8 text-right">
+            {formatTime(currentTime)}
+          </span>
           <input
             type="range"
             min="0"
             max={duration || 0}
             value={currentTime}
             onChange={(e) => seek(Number(e.target.value))}
-            className="w-full h-1 bg-gray-700 rounded-lg accent-green-400 cursor-pointer"
+            className="w-full accent-green-400"
           />
-          <span className="text-xs w-8 text-left">{formatTime(duration)}</span>
+          <span className="text-xs w-8 text-left">
+            {formatTime(duration)}
+          </span>
         </div>
       </div>
 
