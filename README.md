@@ -1,1 +1,2 @@
-basic Spotify Clone
+# Basic Spotify Clone
+React Spotify Clone App
