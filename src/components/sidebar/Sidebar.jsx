@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import ThemeToggle from "../ui/ThemeToggle";
 
 export default function Sidebar() {
   const menuItems = [
@@ -27,6 +28,14 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <div className="h-full p-4 bg-[#cd6c6c] dark:bg-[#000] light:bg-[#f5f5f5]">
+      
+      {/* existing nav */}
+
+      <div className="mt-auto">
+        <ThemeToggle />
+      </div>
+    </div>
     </div>
   );
 }

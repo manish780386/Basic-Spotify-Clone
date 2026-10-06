@@ -26,5 +26,6 @@ const songs = [
       "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2",
     duration: "2:58",
   },
+  
 ];
 export default songs;
