@@ -2,31 +2,15 @@ import { useEffect } from "react";
 import { usePlayer } from "../context/PlayerContext";
 
 export default function useKeyboardControls() {
-  const { togglePlay, nextSong, prevSong } = usePlayer();
-
+  const { togglePlay, next, prev } = usePlayer();
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // form input me focus ho to skip
-      if (e.target.tagName === "INPUT") return;
-
-      if (e.code === "Space") {
-        e.preventDefault();
-        togglePlay();
-      }
-
-      if (e.code === "ArrowRight") {
-        nextSong();
-      }
-
-      if (e.code === "ArrowLeft") {
-        prevSong();
-      }
+    const onKey = (e) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+      if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+      if (e.code === "ArrowRight") next();
+      if (e.code === "ArrowLeft") prev();
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [togglePlay, next, prev]);
 }

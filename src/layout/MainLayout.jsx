@@ -1,14 +1,14 @@
 import { Routes, Route } from "react-router-dom";
 import { PlayerProvider } from "../context/PlayerContext";
 import Sidebar from "../components/sidebar/Sidebar";
-import BottomNav from "../components/sidebar/BottomNav";
+import BottomNav from "../components/sidebar/BottomNav.jsx";
 import Player from "../components/player/Player";
 import QueuePanel from "../components/queue/QueuePanel";
 import Home from "../pages/Home";
 import Search from "../pages/Search.jsx";
-import Library from "../pages/Library";
-import Playlist from "../pages/Playlist";
-import useKeyboardControls from "../hooks/useKeyboardControls";
+import Library from "../pages/Library.jsx";
+import Playlist from "../pages/Playlist.jsx";
+import useKeyboardControls from "../hooks/useKeyboardControls.js";
 
 function Shell() {
   useKeyboardControls();
