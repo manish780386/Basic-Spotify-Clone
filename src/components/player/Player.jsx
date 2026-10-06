@@ -1,131 +1,50 @@
-import { motion } from "framer-motion";
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Volume2, VolumeX, Heart } from "lucide-react";
 import { usePlayer } from "../../context/PlayerContext";
-import useAudio from "../../hooks/useAudio";
-import VolumeControl from "./VolumeControl";
-import useKeyboardControls from "../../hooks/useKeyboardControls";
-import useScreen from "../../hooks/useScreen";
-import MobilePlayer from "./MobilePlayer";
-import AudioVisualizer from "../visualizer/AudioVisualizer";
+import Slider from "../ui/Slider";
+
+const fmt = (t) => `${Math.floor((t || 0) / 60)}:${String(Math.floor((t || 0) % 60)).padStart(2, "0")}`;
 
 export default function Player() {
-  useKeyboardControls();
-  const isMobile = useScreen();
-
-  // 🎵 Player state
-  const {
-    currentSong,
-    isPlaying,
-    togglePlay,
-    nextSong,
-    prevSong,
-    shuffle,
-    repeat,
-    toggleShuffle,
-    toggleRepeat,
-  } = usePlayer();
-
-  // 🔊 Audio hook
-  const { currentTime, duration, seek, audioRef } = useAudio();
-
-  // ❌ no song → no player
-  if (!currentSong) return null;
-
-  // 📱 Mobile
-  if (isMobile) return <MobilePlayer />;
-
-  // ⏱ format time
-  const formatTime = (time) => {
-    if (time === undefined || time === null) return "0:00";
-    const min = Math.floor(time / 60);
-    const sec = Math.floor(time % 60).toString().padStart(2, "0");
-    return `${min}:${sec}`;
-  };
+  const p = usePlayer();
+  const s = p.current;
+  if (!s) return null;
+  const RepeatIcon = p.repeat === "one" ? Repeat1 : Repeat;
+  const on = (v) => (v ? "text-(--accent)" : "text-(--muted) hover:text-(--text)");
 
   return (
-    <motion.div
-      initial={{ y: 80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 px-4 py-3 flex items-center justify-between text-white z-50"
-    >
-      {/* LEFT */}
-      <div className="flex items-center gap-3 w-1/3 min-w-0">
-        <img
-          src={currentSong.cover}
-          alt={currentSong.title}
-          className="w-14 h-14 rounded-lg object-cover"
-        />
-        <div className="truncate">
-          <p className="text-sm font-semibold truncate">
-            {currentSong.title}
-          </p>
-          <p className="text-xs text-gray-400 truncate">
-            {currentSong.artist}
-          </p>
+    <div className="fixed md:static bottom-14 inset-x-2 md:inset-x-0 z-40 md:z-auto rounded-xl md:rounded-none bg-(--hover) md:bg-(--bg) px-3 md:px-4 py-2 md:py-3 grid grid-cols-[1fr_auto] md:grid-cols-3 items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <img src={s.cover} alt="" className="size-11 md:size-14 rounded-md object-cover" />
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-sm">{s.title}</p>
+          <p className="truncate text-xs text-(--muted)">{s.artist}</p>
+        </div>
+        <button onClick={() => p.toggleLike(s)} aria-label="Like" className={`hidden md:block ml-2 ${p.isLiked(s.id) ? "text-(--accent)" : "text-(--muted)"}`}>
+          <Heart size={18} fill={p.isLiked(s.id) ? "currentColor" : "none"} />
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center gap-1 md:max-w-xl md:w-full md:mx-auto">
+        <div className="flex items-center gap-4 md:gap-5">
+          <button onClick={p.toggleShuffle} aria-label="Shuffle" className={`hidden md:block ${on(p.shuffle)}`}><Shuffle size={18} /></button>
+          <button onClick={p.prev} aria-label="Previous" className="hidden md:block"><SkipBack size={20} fill="currentColor" /></button>
+          <button onClick={p.togglePlay} aria-label={p.isPlaying ? "Pause" : "Play"} className="grid place-items-center size-10 rounded-full bg-(--text) text-(--bg)">
+            {p.isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+          </button>
+          <button onClick={p.next} aria-label="Next"><SkipForward size={20} fill="currentColor" /></button>
+          <button onClick={p.toggleRepeat} aria-label="Repeat" className={`hidden md:block ${on(p.repeat !== "none")}`}><RepeatIcon size={18} /></button>
+        </div>
+        <div className="hidden md:flex items-center gap-2 w-full text-xs text-(--muted)">
+          <span className="w-9 text-right">{fmt(p.time)}</span>
+          <Slider label="Seek" value={p.time} max={p.duration} onChange={p.seek} />
+          <span className="w-9">{fmt(p.duration)}</span>
         </div>
       </div>
 
-      {/* CENTER */}
-      <div className="flex flex-col items-center w-1/3">
-        {/* Shuffle / Repeat */}
-        <div className="flex gap-5 mb-1 text-xl">
-          <button
-            onClick={toggleShuffle}
-            className={shuffle ? "text-green-400" : "text-gray-500"}
-          >
-            🔀
-          </button>
-
-          <button
-            onClick={toggleRepeat}
-            className={repeat !== "none" ? "text-green-400" : "text-gray-500"}
-          >
-            🔁 {repeat === "one" && "1"}
-          </button>
-        </div>
-
-        {/* Controls */}
-        <div className="flex gap-6 mb-2">
-          <button onClick={prevSong} className="text-2xl">⏮</button>
-
-          <button
-            onClick={togglePlay}
-            className="bg-white text-black w-12 h-12 rounded-full font-bold flex items-center justify-center"
-          >
-            {isPlaying ? "❚❚" : "▶"}
-          </button>
-
-          <button onClick={nextSong} className="text-2xl">⏭</button>
-        </div>
-
-        {/* 🎧 Audio Visualizer (ONLY ONCE) */}
-        <AudioVisualizer audioRef={audioRef} />
-
-        {/* Progress */}
-        <div className="flex items-center gap-2 w-full mt-1">
-          <span className="text-xs w-8 text-right">
-            {formatTime(currentTime)}
-          </span>
-
-          <input
-            type="range"
-            min="0"
-            max={duration || 0}
-            value={currentTime}
-            onChange={(e) => seek(Number(e.target.value))}
-            className="w-full h-1 accent-green-400 cursor-pointer"
-          />
-
-          <span className="text-xs w-8 text-left">
-            {formatTime(duration)}
-          </span>
-        </div>
+      <div className="hidden md:flex items-center justify-end gap-2 text-(--muted)">
+        <button onClick={() => p.setVolume(p.volume ? 0 : 0.8)} aria-label="Mute">{p.volume ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+        <div className="w-28"><Slider label="Volume" value={p.volume} max={1} onChange={p.setVolume} /></div>
       </div>
-
-      {/* RIGHT */}
-      <div className="w-1/3 flex justify-end">
-        <VolumeControl audioRef={audioRef} />
-      </div>
-    </motion.div>
+    </div>
   );
 }

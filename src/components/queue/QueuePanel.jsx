@@ -1,43 +1,30 @@
+import { X } from "lucide-react";
 import { usePlayer } from "../../context/PlayerContext";
 
 export default function QueuePanel() {
-  const { queue, playSong, removeFromQueue } = usePlayer();
-
-  // 🔒 SAFETY CHECK
-  if (!queue || queue.length === 0) return null;
-
+  const { current, queue, index, playSong, removeFromQueue } = usePlayer();
   return (
-    <div className="fixed right-0 top-0 w-80 h-screen bg-[#181818] border-l border-gray-700 p-4 z-40">
-      <h2 className="text-lg font-bold mb-4">Up Next</h2>
-
-      <div className="space-y-3 overflow-y-auto h-full pb-20">
-        {queue.map((song) => (
-          <div
-            key={song.id}
-            className="flex items-center gap-3 p-2 rounded hover:bg-[#282828]"
-          >
-            <img
-              src={song.cover}
-              className="w-12 h-12 rounded cursor-pointer"
-              onClick={() => playSong(song)}
-            />
-
-            <div className="flex-1">
-              <p className="text-sm font-semibold truncate">{song.title}</p>
-              <p className="text-xs text-gray-400 truncate">
-                {song.artist}
-              </p>
+    <div className="w-full rounded-xl bg-(--panel) p-4 overflow-y-auto">
+      <h2 className="font-bold mb-4">Now playing</h2>
+      {current ? (
+        <>
+          <img src={current.cover} alt="" className="w-full aspect-square rounded-lg object-cover mb-3" />
+          <p className="font-bold text-lg truncate">{current.title}</p>
+          <p className="text-(--muted) mb-6">{current.artist}</p>
+          <h3 className="font-semibold text-(--muted) mb-2">Next in queue</h3>
+          {queue.slice(index + 1).map((song, k) => (
+            <div key={`${song.id}-${k}`} className="group flex items-center gap-3 p-2 rounded-lg hover:bg-(--hover)">
+              <img src={song.cover} alt="" onClick={() => playSong(song, queue)} className="size-10 rounded object-cover cursor-pointer" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate">{song.title}</p>
+                <p className="text-xs text-(--muted) truncate">{song.artist}</p>
+              </div>
+              <button onClick={() => removeFromQueue(index + 1 + k)} aria-label="Remove from queue" className="opacity-0 group-hover:opacity-100 text-(--muted)"><X size={16} /></button>
             </div>
-
-            <button
-              onClick={() => removeFromQueue(song.id)}
-              className="text-red-400 text-sm"
-            >
-              ✖
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+          {index + 1 >= queue.length && <p className="text-sm text-(--muted)">Nothing queued. Use the queue button on any song.</p>}
+        </>
+      ) : <p className="text-sm text-(--muted)">Pick a song to see it here.</p>}
     </div>
   );
 }

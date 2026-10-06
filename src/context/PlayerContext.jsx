@@ -1,121 +1,105 @@
-import { createContext, useContext, useState } from "react";
-
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import songs from "../data/songs";
 
-const PlayerContext = createContext();
+const Ctx = createContext();
+
+const useStored = (key, init) => {
+  const [v, set] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(key)) ?? init; } catch { return init; }
+  });
+  useEffect(() => { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} }, [key, v]);
+  return [v, set];
+};
 
 export function PlayerProvider({ children }) {
-  const [playlists, setPlaylists] = useState([]);
-  const [currentSong, setCurrentSong] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const audio = useRef(null);
+  if (!audio.current) audio.current = new Audio();
+
+  const [queue, setQueue] = useState(songs);
+  const [index, setIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-
   const [shuffle, setShuffle] = useState(false);
-  const [repeat, setRepeat] = useState("none"); // none | all | one
+  const [repeat, setRepeat] = useState("none");
+  const [time, setTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useStored("dhunly-volume", 0.8);
+  const [liked, setLiked] = useStored("dhunly-liked", []);
+  const [playlists, setPlaylists] = useStored("dhunly-playlists", []);
+  const current = queue[index] || null;
 
-  const [likedSongs, setLikedSongs] = useState(
-    JSON.parse(localStorage.getItem("likedSongs")) || []
-  );
+  useEffect(() => {
+    if (!current) return;
+    audio.current.src = current.audio;
+    if (isPlaying) audio.current.play().catch(() => setIsPlaying(false));
+  }, [current?.id]);
 
-  const createPlaylist = (name) => {
-  setPlaylists((prev) => [
-    ...prev,
-    { id: Date.now(), name, songs: [] },
-  ]);
-};
+  useEffect(() => {
+    if (!current) return;
+    if (isPlaying) audio.current.play().catch(() => setIsPlaying(false));
+    else audio.current.pause();
+  }, [isPlaying]);
 
-const addToPlaylist = (playlistId, song) => {
-  setPlaylists((prev) =>
-    prev.map((pl) =>
-      pl.id === playlistId && !pl.songs.some(s => s.id === song.id)
-        ? { ...pl, songs: [...pl.songs, song] }
-        : pl
-    )
-  );
-};
-  const playSong = (song) => {
-    const index = songs.findIndex((s) => s.id === song.id);
-    setCurrentIndex(index);
-    setCurrentSong(song);
-    setIsPlaying(true);
-  };
+  useEffect(() => { audio.current.volume = volume; }, [volume]);
 
-  const togglePlay = () => setIsPlaying((p) => !p);
-
-  const toggleShuffle = () => setShuffle((s) => !s);
-
-  const toggleRepeat = () => {
-    setRepeat((prev) =>
-      prev === "none" ? "all" : prev === "all" ? "one" : "none"
-    );
-  };
-
-  const nextSong = () => {
-    if (repeat === "one") return;
-
-    let nextIndex;
-
-    if (shuffle) {
-      nextIndex = Math.floor(Math.random() * songs.length);
-    } else {
-      nextIndex = currentIndex + 1;
-      if (nextIndex >= songs.length) {
-        if (repeat === "all") nextIndex = 0;
-        else return;
-      }
+  const next = (auto = false) => {
+    if (!queue.length) return;
+    if (auto && repeat === "one") { audio.current.currentTime = 0; audio.current.play(); return; }
+    let i = shuffle ? Math.floor(Math.random() * queue.length) : index + 1;
+    if (i >= queue.length) {
+      if (repeat === "all" || !auto) i = 0;
+      else { setIsPlaying(false); return; }
     }
+    setIndex(i); setIsPlaying(true);
+  };
+  const nextRef = useRef(next); nextRef.current = next;
 
-    setCurrentIndex(nextIndex);
-    setCurrentSong(songs[nextIndex]);
+  useEffect(() => {
+    const a = audio.current;
+    const t = () => setTime(a.currentTime);
+    const d = () => setDuration(a.duration || 0);
+    const e = () => nextRef.current(true);
+    a.addEventListener("timeupdate", t);
+    a.addEventListener("loadedmetadata", d);
+    a.addEventListener("ended", e);
+    return () => { a.removeEventListener("timeupdate", t); a.removeEventListener("loadedmetadata", d); a.removeEventListener("ended", e); };
+  }, []);
+
+  const playSong = (song, list = songs) => {
+    if (current?.id === song.id && list === queue) { setIsPlaying((p) => !p); return; }
+    setQueue(list);
+    setIndex(list.findIndex((s) => s.id === song.id));
     setIsPlaying(true);
   };
-
-  const prevSong = () => {
-    let prevIndex = currentIndex - 1;
-    if (prevIndex < 0) prevIndex = songs.length - 1;
-
-    setCurrentIndex(prevIndex);
-    setCurrentSong(songs[prevIndex]);
-    setIsPlaying(true);
+  const togglePlay = () => current && setIsPlaying((p) => !p);
+  const seek = (t) => { audio.current.currentTime = t; setTime(t); };
+  const prev = () => {
+    if (time > 3) return seek(0);
+    setIndex((i) => (i - 1 < 0 ? queue.length - 1 : i - 1)); setIsPlaying(true);
   };
+  const toggleRepeat = () => setRepeat((r) => (r === "none" ? "all" : r === "all" ? "one" : "none"));
 
-  const toggleLike = (song) => {
-    const exists = likedSongs.find((s) => s.id === song.id);
+  const addToQueue = (song) => setQueue((q) => [...q, song]);
+  const removeFromQueue = (i) => { if (i > index) setQueue((q) => q.filter((_, x) => x !== i)); };
 
-    let updated;
-    if (exists) {
-      updated = likedSongs.filter((s) => s.id !== song.id);
-    } else {
-      updated = [...likedSongs, song];
-    }
+  const isLiked = (id) => liked.some((s) => s.id === id);
+  const toggleLike = (song) =>
+    setLiked((l) => (l.some((s) => s.id === song.id) ? l.filter((s) => s.id !== song.id) : [song, ...l]));
 
-    setLikedSongs(updated);
-    localStorage.setItem("likedSongs", JSON.stringify(updated));
-  };
+  const createPlaylist = (name) => setPlaylists((p) => [...p, { id: Date.now(), name: name.trim(), songs: [] }]);
+  const deletePlaylist = (id) => setPlaylists((p) => p.filter((x) => x.id !== id));
+  const addToPlaylist = (pid, song) =>
+    setPlaylists((p) => p.map((pl) =>
+      pl.id === pid && !pl.songs.some((s) => s.id === song.id) ? { ...pl, songs: [...pl.songs, song] } : pl));
 
   return (
-    <PlayerContext.Provider
-      value={{
-        currentSong,
-        isPlaying,
-        playSong,
-        togglePlay,
-        nextSong,
-        prevSong,
-        shuffle,
-        repeat,
-        toggleShuffle,
-        toggleRepeat,
-        likedSongs,
-        toggleLike,
-        addToPlaylist,
-        createPlaylist,
-        playlists,
-      }}
-    >
+    <Ctx.Provider value={{
+      current, queue, index, isPlaying, shuffle, repeat, time, duration, volume,
+      liked, playlists, playSong, togglePlay, next: () => next(false), prev, seek, setVolume,
+      toggleShuffle: () => setShuffle((s) => !s), toggleRepeat,
+      addToQueue, removeFromQueue, isLiked, toggleLike, createPlaylist, deletePlaylist, addToPlaylist,
+    }}>
       {children}
-    </PlayerContext.Provider>
+    </Ctx.Provider>
   );
 }
-
-export const usePlayer = () => useContext(PlayerContext);
+export const usePlayer = () => useContext(Ctx);
