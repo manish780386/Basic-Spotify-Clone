@@ -1,14 +1,17 @@
 import { Routes, Route } from "react-router-dom";
 import { PlayerProvider } from "../context/PlayerContext";
 import Sidebar from "../components/sidebar/Sidebar";
-import BottomNav from "../components/sidebar/BottomNav.jsx";
+import BottomNav from "../components/sidebar/BottomNav";
 import Player from "../components/player/Player";
+import NowPlaying from "../components/player/NowPlaying";
 import QueuePanel from "../components/queue/QueuePanel";
+import Toast from "../components/ui/Toast";
 import Home from "../pages/Home";
-import Search from "../pages/Search.jsx";
-import Library from "../pages/Library.jsx";
-import Playlist from "../pages/Playlist.jsx";
-import useKeyboardControls from "../hooks/useKeyboardControls.js";
+import Search from "../pages/Search";
+import Library from "../pages/Library";
+import Playlist from "../pages/Playlist";
+import Mood from "../pages/Mood";
+import useKeyboardControls from "../hooks/useKeyboardControls";
 
 function Shell() {
   useKeyboardControls();
@@ -22,12 +25,15 @@ function Shell() {
             <Route path="/search" element={<Search />} />
             <Route path="/library" element={<Library />} />
             <Route path="/playlist/:id" element={<Playlist />} />
+            <Route path="/mood/:name" element={<Mood />} />
           </Routes>
         </main>
         <aside className="hidden xl:flex w-80 shrink-0"><QueuePanel /></aside>
       </div>
       <Player />
       <BottomNav />
+      <NowPlaying />
+      <Toast />
     </div>
   );
 }

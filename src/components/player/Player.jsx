@@ -14,11 +14,17 @@ export default function Player() {
   return (
     <div className="fixed md:static bottom-14 inset-x-2 md:inset-x-0 z-40 md:z-auto rounded-xl md:rounded-none bg-(--hover) md:bg-(--bg) px-3 md:px-4 py-2 md:py-3 grid grid-cols-[1fr_auto] md:grid-cols-3 items-center gap-3">
       <div className="flex items-center gap-3 min-w-0">
-        <img src={s.cover} alt="" className="size-11 md:size-14 rounded-md object-cover" />
-        <div className="min-w-0">
-          <p className="truncate font-semibold text-sm">{s.title}</p>
-          <p className="truncate text-xs text-(--muted)">{s.artist}</p>
-        </div>
+        <button
+          onClick={() => p.setNpOpen(true)}
+          aria-label="Open now playing"
+          className="flex items-center gap-3 min-w-0 text-left"
+        >
+          <img src={s.cover} alt="" className="size-11 md:size-14 rounded-md object-cover" />
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-sm">{s.title}</p>
+            <p className="truncate text-xs text-(--muted)">{s.artist}</p>
+          </div>
+        </button>
         <button onClick={() => p.toggleLike(s)} aria-label="Like" className={`hidden md:block ml-2 ${p.isLiked(s.id) ? "text-(--accent)" : "text-(--muted)"}`}>
           <Heart size={18} fill={p.isLiked(s.id) ? "currentColor" : "none"} />
         </button>
