@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { CatalogProvider } from "../context/CatalogContext";
 import { PlayerProvider } from "../context/PlayerContext";
 import Sidebar from "../components/sidebar/Sidebar";
 import BottomNav from "../components/sidebar/BottomNav";
@@ -39,5 +40,11 @@ function Shell() {
 }
 
 export default function MainLayout() {
-  return <PlayerProvider><Shell /></PlayerProvider>;
+  return (
+    <CatalogProvider>
+      <PlayerProvider>
+        <Shell />
+      </PlayerProvider>
+    </CatalogProvider>
+  );
 }

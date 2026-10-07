@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import songs from "../data/songs";
 
 const Ctx = createContext();
 
@@ -17,7 +16,7 @@ export function PlayerProvider({ children }) {
   const actx = useRef(null);
   const analyser = useRef(null);
 
-  const [queue, setQueue] = useState(songs);
+  const [queue, setQueue] = useState([]);
   const [index, setIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffle, setShuffle] = useState(false);
@@ -39,7 +38,8 @@ export function PlayerProvider({ children }) {
     tRef.current = setTimeout(() => setToast((t) => ({ ...t, show: false })), 2000);
   };
 
-  // visualizer: only for same-origin audio (remote audio without CORS would go silent)
+  // Visualizer: sirf same-origin audio (/music/...) ke liye.
+  // Remote audio (Jamendo) pe createMediaElementSource lagane se awaaz band ho sakti hai.
   const initAudio = (song) => {
     if (actx.current) { actx.current.resume(); return; }
     if (!song || !song.audio.startsWith("/")) return;
@@ -49,12 +49,15 @@ export function PlayerProvider({ children }) {
       const src = ctx.createMediaElementSource(audio.current);
       const an = ctx.createAnalyser();
       an.fftSize = 128;
-      src.connect(an); an.connect(ctx.destination);
-      actx.current = ctx; analyser.current = an;
+      src.connect(an);
+      an.connect(ctx.destination);
+      actx.current = ctx;
+      analyser.current = an;
     } catch {}
   };
   const getAnalyser = () => analyser.current;
 
+  // song change
   useEffect(() => {
     if (!current) return;
     audio.current.src = current.audio;
@@ -62,6 +65,7 @@ export function PlayerProvider({ children }) {
     setRecent((r) => [current, ...r.filter((s) => s.id !== current.id)].slice(0, 8));
   }, [current?.id]);
 
+  // play / pause
   useEffect(() => {
     if (!current) return;
     if (isPlaying) audio.current.play().catch(() => setIsPlaying(false));
@@ -72,15 +76,21 @@ export function PlayerProvider({ children }) {
 
   const next = (auto = false) => {
     if (!queue.length) return;
-    if (auto && repeat === "one") { audio.current.currentTime = 0; audio.current.play(); return; }
+    if (auto && repeat === "one") {
+      audio.current.currentTime = 0;
+      audio.current.play();
+      return;
+    }
     let i = shuffle ? Math.floor(Math.random() * queue.length) : index + 1;
     if (i >= queue.length) {
       if (repeat === "all" || !auto) i = 0;
       else { setIsPlaying(false); return; }
     }
-    setIndex(i); setIsPlaying(true);
+    setIndex(i);
+    setIsPlaying(true);
   };
-  const nextRef = useRef(next); nextRef.current = next;
+  const nextRef = useRef(next);
+  nextRef.current = next;
 
   useEffect(() => {
     const a = audio.current;
@@ -90,26 +100,46 @@ export function PlayerProvider({ children }) {
     a.addEventListener("timeupdate", t);
     a.addEventListener("loadedmetadata", d);
     a.addEventListener("ended", e);
-    return () => { a.removeEventListener("timeupdate", t); a.removeEventListener("loadedmetadata", d); a.removeEventListener("ended", e); };
+    return () => {
+      a.removeEventListener("timeupdate", t);
+      a.removeEventListener("loadedmetadata", d);
+      a.removeEventListener("ended", e);
+    };
   }, []);
 
-  const playSong = (song, list = songs) => {
+  const playSong = (song, list = [song]) => {
     initAudio(song);
-    if (current?.id === song.id && list === queue) { setIsPlaying((p) => !p); return; }
-    setQueue(list);
-    setIndex(list.findIndex((s) => s.id === song.id));
+    const l = list.some((s) => s.id === song.id) ? list : [song, ...list];
+    if (current?.id === song.id && l === queue) { setIsPlaying((p) => !p); return; }
+    setQueue(l);
+    setIndex(l.findIndex((s) => s.id === song.id));
     setIsPlaying(true);
   };
-  const togglePlay = () => { if (!current) return; initAudio(current); setIsPlaying((p) => !p); };
+
+  const togglePlay = () => {
+    if (!current) return;
+    initAudio(current);
+    setIsPlaying((p) => !p);
+  };
+
   const seek = (t) => { audio.current.currentTime = t; setTime(t); };
+
   const prev = () => {
     if (time > 3) return seek(0);
-    setIndex((i) => (i - 1 < 0 ? queue.length - 1 : i - 1)); setIsPlaying(true);
+    setIndex((i) => (i - 1 < 0 ? queue.length - 1 : i - 1));
+    setIsPlaying(true);
   };
-  const toggleRepeat = () => setRepeat((r) => (r === "none" ? "all" : r === "all" ? "one" : "none"));
 
-  const addToQueue = (song) => { setQueue((q) => [...q, song]); notify("Added to queue"); };
-  const removeFromQueue = (i) => { if (i > index) setQueue((q) => q.filter((_, x) => x !== i)); };
+  const toggleRepeat = () =>
+    setRepeat((r) => (r === "none" ? "all" : r === "all" ? "one" : "none"));
+
+  const addToQueue = (song) => {
+    setQueue((q) => [...q, song]);
+    notify("Added to queue");
+  };
+  const removeFromQueue = (i) => {
+    if (i > index) setQueue((q) => q.filter((_, x) => x !== i));
+  };
 
   const isLiked = (id) => liked.some((s) => s.id === id);
   const toggleLike = (song) => {
@@ -122,7 +152,10 @@ export function PlayerProvider({ children }) {
     setPlaylists((p) => [...p, { id: Date.now(), name: name.trim(), songs: [] }]);
     notify(`Created “${name.trim()}”`);
   };
-  const deletePlaylist = (id) => { setPlaylists((p) => p.filter((x) => x.id !== id)); notify("Playlist deleted"); };
+  const deletePlaylist = (id) => {
+    setPlaylists((p) => p.filter((x) => x.id !== id));
+    notify("Playlist deleted");
+  };
   const addToPlaylist = (pid, song) => {
     const pl = playlists.find((x) => x.id === pid);
     if (!pl) return;
@@ -132,15 +165,19 @@ export function PlayerProvider({ children }) {
   };
 
   return (
-    <Ctx.Provider value={{
-      current, queue, index, isPlaying, shuffle, repeat, time, duration, volume,
-      liked, playlists, recent, npOpen, setNpOpen, toast, getAnalyser,
-      playSong, togglePlay, next: () => next(false), prev, seek, setVolume,
-      toggleShuffle: () => setShuffle((s) => !s), toggleRepeat,
-      addToQueue, removeFromQueue, isLiked, toggleLike, createPlaylist, deletePlaylist, addToPlaylist,
-    }}>
+    <Ctx.Provider
+      value={{
+        current, queue, index, isPlaying, shuffle, repeat, time, duration, volume,
+        liked, playlists, recent, npOpen, setNpOpen, toast, getAnalyser,
+        playSong, togglePlay, next: () => next(false), prev, seek, setVolume,
+        toggleShuffle: () => setShuffle((s) => !s), toggleRepeat,
+        addToQueue, removeFromQueue, isLiked, toggleLike,
+        createPlaylist, deletePlaylist, addToPlaylist,
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
 }
+
 export const usePlayer = () => useContext(Ctx);
