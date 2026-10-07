@@ -3,6 +3,7 @@ import { Play } from "lucide-react";
 import { moods } from "../data/moods";
 import SongCard from "../components/song/SongCard";
 import SongRow from "../components/song/SongRow";
+import { CardSkeleton, RowSkeleton } from "../components/ui/Skeleton";
 import { usePlayer } from "../context/PlayerContext";
 import { useCatalog } from "../context/CatalogContext";
 import useCoverColor from "../hooks/useCoverColor";
@@ -15,13 +16,13 @@ export default function Home() {
   const greet = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="p-4 md:p-6" style={{ background: `linear-gradient(180deg, rgba(${rgb},.5) 0%, transparent 380px)` }}>
+    <div className="page p-4 md:p-6" style={{ background: `linear-gradient(180deg, rgba(${rgb},.5) 0%, transparent 380px)` }}>
       <h1 className="text-3xl font-extrabold tracking-tight mb-5">{greet}</h1>
 
-      {error && <p className="mb-6 rounded-lg bg-red-500/15 text-red-400 p-3 text-sm">Could not load songs: {error}</p>}
+      {error && <p className="mb-6 rounded-lg bg-red-500/15 text-red-400 p-3 text-sm">Could not load songs: {error}. Check your internet and the key in .env, then refresh.</p>}
 
       {loading ? (
-        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-8">
           {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-16 rounded-lg bg-(--hover) animate-pulse" />)}
         </div>
       ) : (
@@ -59,12 +60,14 @@ export default function Home() {
       </div>
 
       <h2 className="text-xl font-bold mb-2">Trending this week</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 mb-8">
-        {songs.slice(0, 12).map((s) => <SongCard key={s.id} song={s} list={songs} />)}
-      </div>
+      {loading ? <CardSkeleton n={8} /> : (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-1 mb-8">
+          {songs.slice(0, 12).map((s) => <SongCard key={s.id} song={s} list={songs} />)}
+        </div>
+      )}
 
       <h2 className="text-xl font-bold mb-2">All tracks</h2>
-      {songs.map((s, i) => <SongRow key={s.id} song={s} list={songs} n={i + 1} />)}
+      {loading ? <RowSkeleton n={6} /> : songs.map((s, i) => <SongRow key={s.id} song={s} list={songs} n={i + 1} />)}
     </div>
   );
 }

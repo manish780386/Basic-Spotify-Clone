@@ -10,9 +10,15 @@ export default function Player() {
   if (!s) return null;
   const RepeatIcon = p.repeat === "one" ? Repeat1 : Repeat;
   const on = (v) => (v ? "text-(--accent)" : "text-(--muted) hover:text-(--text)");
+  const pct = p.duration ? (p.time / p.duration) * 100 : 0;
 
   return (
     <div className="fixed md:static bottom-14 inset-x-2 md:inset-x-0 z-40 md:z-auto rounded-xl md:rounded-none bg-(--hover) md:bg-(--bg) px-3 md:px-4 py-2 md:py-3 grid grid-cols-[1fr_auto] md:grid-cols-3 items-center gap-3">
+      {/* mobile progress line */}
+      <div className="md:hidden absolute left-3 right-3 bottom-0 h-0.5 rounded bg-(--line)" aria-hidden="true">
+        <div className="h-full rounded bg-(--text)" style={{ width: `${pct}%` }} />
+      </div>
+
       <div className="flex items-center gap-3 min-w-0">
         <button
           onClick={() => p.setNpOpen(true)}

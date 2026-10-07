@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { ChevronDown, Heart, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1 } from "lucide-react";
 import { usePlayer } from "../../context/PlayerContext";
 import useCoverColor from "../../hooks/useCoverColor";
@@ -11,6 +11,7 @@ const fmt = (t) => `${Math.floor((t || 0) / 60)}:${String(Math.floor((t || 0) % 
 export default function NowPlaying() {
   const p = usePlayer();
   const s = p.current;
+  const controls = useDragControls();
   const rgb = useCoverColor(s?.cover).join(",");
   const RepeatIcon = p.repeat === "one" ? Repeat1 : Repeat;
   const on = (v) => (v ? "text-(--accent)" : "text-(--muted) hover:text-(--text)");
@@ -24,22 +25,31 @@ export default function NowPlaying() {
   return (
     <AnimatePresence>
       {p.npOpen && s && (
-        <motion.div key="np"
+        <motion.div
+          key="np"
           initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 30, stiffness: 260 }}
+          drag="y" dragControls={controls} dragListener={false}
+          dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.7 }}
+          onDragEnd={(_, info) => { if (info.offset.y > 120 || info.velocity.y > 600) p.setNpOpen(false); }}
           className="fixed inset-0 z-[60] overflow-y-auto text-white"
           style={{
             background: `linear-gradient(180deg, rgb(${rgb}) 0%, rgba(0,0,0,.96) 100%)`,
             "--text": "#fff", "--muted": "rgba(255,255,255,.7)", "--line": "rgba(255,255,255,.25)",
-          }}>
-          <div className="mx-auto max-w-md min-h-full flex flex-col gap-5 px-6 py-5">
-            <div className="flex items-center justify-between">
-              <button onClick={() => p.setNpOpen(false)} aria-label="Close" className="p-2 -ml-2 rounded-full hover:bg-white/10"><ChevronDown size={28} /></button>
-              <span className="font-semibold text-sm">Now playing</span>
-              <span className="w-8" />
+          }}
+        >
+          <div className="mx-auto max-w-md min-h-full flex flex-col gap-5 px-6 pb-6">
+            {/* drag handle: yaha se neeche kheench ke band karo */}
+            <div onPointerDown={(e) => controls.start(e)} style={{ touchAction: "none" }} className="pt-3 pb-1 cursor-grab">
+              <div className="mx-auto h-1.5 w-12 rounded-full bg-white/40 mb-3" />
+              <div className="flex items-center justify-between">
+                <button onClick={() => p.setNpOpen(false)} aria-label="Close" className="p-2 -ml-2 rounded-full hover:bg-white/10"><ChevronDown size={28} /></button>
+                <span className="font-semibold text-sm">Now playing</span>
+                <span className="w-8" />
+              </div>
             </div>
 
-            <img src={s.cover} alt="" className="w-full aspect-square rounded-2xl object-cover shadow-2xl" />
+            <img src={s.cover} alt="" className="w-full aspect-square rounded-2xl object-cover shadow-2xl bg-white/10" />
 
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
