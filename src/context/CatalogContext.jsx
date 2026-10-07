@@ -13,19 +13,21 @@ export function CatalogProvider({ children }) {
   useEffect(() => {
     let dead = false;
     (async () => {
-      try {
-        const [trending, ...rest] = await Promise.all([
-          fetchTracks({ order: "popularity_week", limit: 30 }),
-          ...moods.map((m) => fetchTracks({ tags: m.tags, order: "popularity_month", limit: 15 })),
-        ]);
-        if (dead) return;
-        setSongs(trending);
-        setByMood(Object.fromEntries(moods.map((m, i) => [m.name, rest[i]])));
-      } catch (e) {
-        if (!dead) setError(e.message);
-      } finally {
-        if (!dead) setLoading(false);
-      }
+      // allSettled: ek mood fail ho to baaki sab phir bhi load hon
+      const res = await Promise.allSettled([
+        fetchTracks({ order: "popularity_week", limit: 30 }),
+        ...moods.map((m) => fetchTracks({ fuzzytags: m.tags, boost: "popularity_month", limit: 20 })),
+      ]);
+      if (dead) return;
+      const [trending, ...rest] = res;
+      if (trending.status === "fulfilled") setSongs(trending.value);
+      else setError(trending.reason?.message || "Could not load songs");
+      setByMood(
+        Object.fromEntries(
+          moods.map((m, i) => [m.name, rest[i].status === "fulfilled" ? rest[i].value : []])
+        )
+      );
+      setLoading(false);
     })();
     return () => { dead = true; };
   }, []);
